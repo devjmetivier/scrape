@@ -1,21 +1,32 @@
-import {
-  getHTML,
-  getTwitterFollowers,
-  getInstagramFollowers,
-} from './lib/scraper';
+import express from 'express';
+import bodParser from 'body-parser';
+import { getInstagramCount, getTwitterCount } from './lib/scraper';
+import { initDB } from './lib/db';
+import './lib/cron';
 
-async function go() {
-  const twPromise = getHTML('https://twitter.com/devjmetivier');
-  const iGPromise = getHTML('https://www.instagram.com/devinmetivier/');
+const app = express();
+app.use(bodParser.json());
 
-  const [twHTML, igHTML] = await Promise.all([twPromise, iGPromise]);
+initDB().then(async db => {
+  app.get('/scrape', async (req, res, next) => {
+    console.log('Scraping!');
+    const [igCount, twCount] = await Promise.all([
+      getInstagramCount(),
+      getTwitterCount(),
+    ]);
 
-  const twCount = await getTwitterFollowers(twHTML);
-  const igCount = await getInstagramFollowers(igHTML);
-  console.log({ twCount, igCount });
-  // console.log(
-  //   `You have ${igCount} Instagram followers, and ${twCount} Twitter followers.`
-  // );
-}
+    db.get('twitter')
+      .push({ date: Date.now(), count: twCount })
+      .write();
 
-go();
+    db.get('instagram')
+      .push({ date: Date.now(), count: igCount })
+      .write();
+
+    res.json({ igCount, twCount });
+  });
+});
+
+const server = app.listen(2093, () =>
+  console.log(`Example app running on port: ${server.address().port}`)
+);
