@@ -13,9 +13,8 @@ async function getTwitterFollowers(html) {
 }
 
 async function getInstagramFollowers(html) {
-  const $ = await cheerio.load(html);
-  const data = await $('#react-root script').html();
-  console.log(data);
+  const $ = cheerio.load(html);
+  const data = $('span#react-root + script').html();
   const reg = /window._sharedData = (\{.+\})/im;
   const json = data.match(reg);
   const obj = JSON.parse(json[1]);
